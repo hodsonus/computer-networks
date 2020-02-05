@@ -5,10 +5,6 @@ import java.io.InputStreamReader;
 import java.net.Socket;
 
 public class Client {
-    
-    /** 
-     * @param args
-     */
     public static void main(String[] args) {
         String hostname = "localhost";
         int port = 0415;
@@ -28,6 +24,8 @@ public class Client {
         catch (IOException ioe) {}
     }
 
+    /* Instance Members */
+
     private String hostname;
     private int port;
 
@@ -36,11 +34,16 @@ public class Client {
         this.port = port;
     }
 
-    
     /** 
-     * @param request
-     * @return String
-     * @throws IOException
+     * @param request - the request to be sent over TCP to the server.
+     * 
+     * @return String - the server response to our request.
+     * 
+     * @throws IOException - such an exception implies that we are out of I/O
+     * resources for our input/output buffers.
+     * 
+     * Initiate a TCP connection and send the request paramater to the server
+     * specified by the hostname and the port instance members.
      */
     public String makeRequest(String request) throws IOException {
 

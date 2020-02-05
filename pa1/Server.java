@@ -9,27 +9,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class Server {
-    /* Static Members */
-    private static Map<Integer, Server> servers = new HashMap<Integer, Server>();
-
-    /**
-     * @param port
-     * @return Server
-     * @throws IOException
-     */
-    public static Server getServerInstance(int port) throws IOException {
-        if (!servers.containsKey(port)) {
-            servers.put(port, new Server(port));
-        }
-
-        return servers.get(port);
-    }
-
-
-    /**
-     * @param args
-     */
-    /* Main */
     public static void main(String[] args) {
         int port = 0415;
         try {
@@ -39,7 +18,31 @@ public class Server {
         catch (IOException ioe) {}
     }
 
+    /* Static Members */
+
+    private static Map<Integer, Server> servers = new HashMap<Integer, Server>();
+
+    /**
+     * @param port - the desired port number.
+     *
+     * @return Server - the server for the desired port number.
+     *
+     * @throws IOException - such an exception implies that the port resource
+     * is busy with another service not belonging to an instance of this class.
+     *
+     * Implements singleton behavior for a particular port number. Will return
+     * a new server for new port numbers and the same server for the same port.
+     */
+    public static Server getServerInstance(int port) throws IOException {
+        if (!servers.containsKey(port)) {
+            servers.put(port, new Server(port));
+        }
+
+        return servers.get(port);
+    }
+
     /* Instance Members */
+
     private int port;
     private ServerSocket serverSocket;
 
@@ -49,7 +52,13 @@ public class Server {
     }
 
     /**
-     * @throws IOException
+     * @throws IOException - such an exception implies that we are dealing with
+     * a closed socket (the socket member) or we are out of resources for
+     * input/output buffers.
+     *
+     * Implements the listening behavior of a server. Will make calls to
+     * the handleRequest method to perform custom desired behavior for client
+     * requests.
      */
     public void listen() throws IOException {
 
@@ -77,20 +86,24 @@ public class Server {
 
     /**
      * @param clientInput
-     * @return ServerResponse
+     *
+     * @return ServerResponse - ADT representing the server response to the client
+     * and the state of our server after the response is sent to the client.
+     *
+     * Handles the client request. Future projects should extract this server class
+     * out into an abstract class. Subclasses should override this method.
      */
     public ClientRequestResult handleRequest(String clientInput) {
         System.out.println("Hello world!");
         return new ClientRequestResult("response", true); // TODO
     }
-}
 
-class ClientRequestResult {
-    public String response;
-    public boolean serverStatus;
-
-    public ClientRequestResult(String response, boolean serverStatus) {
-        this.response = response;
-        this.serverStatus = serverStatus;
+    class ClientRequestResult {
+        public String response;
+        public boolean serverStatus;
+        public ClientRequestResult(String response, boolean serverStatus) {
+            this.response = response;
+            this.serverStatus = serverStatus;
+        }
     }
 }
