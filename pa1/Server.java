@@ -9,11 +9,17 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class Server {
+    /* TODO - This method has no business being in the server code, will remove
+     * in future projects when refactoring.
+     */
     public static void main(String[] args) {
-        int port = 0415;
+        int port = 415;
+        Server server = null;
+
         try {
-            Server server = getServerInstance(port);
+            server = getServerInstance(port);
             server.listen();
+            server.close();
         }
         catch (IOException ioe) {}
     }
@@ -64,6 +70,8 @@ public class Server {
 
         boolean stillRunning = true;
 
+        System.out.println("Listening on port " + this.port + "...");
+
         while (stillRunning) {
             // throws IOException if server socket is closed or we are out of resources
             Socket socket = serverSocket.accept();
@@ -78,7 +86,7 @@ public class Server {
 
             String serverOutput = clientRequestResult.response;
             // throws IOException if outToClient is closed
-            outToClient.writeBytes(serverOutput);
+            outToClient.writeBytes(serverOutput + "\n");
 
             stillRunning = clientRequestResult.serverStatus;
         }
@@ -94,8 +102,25 @@ public class Server {
      * out into an abstract class. Subclasses should override this method.
      */
     public ClientRequestResult handleRequest(String clientInput) {
-        System.out.println("Hello world!");
-        return new ClientRequestResult("response", true); // TODO
+        // TODO - application specific code goes here
+        return new ClientRequestResult(clientInput.toUpperCase(), true);
+    }
+
+    
+    /** 
+     * @return boolean - true if the socket was able to be closed, false otherwise.
+     * 
+     * Closes the socket member variable.
+     */
+    public boolean close() {
+        try {
+            serverSocket.close();
+        }
+        catch (IOException ioe) {
+            return false;
+        }
+
+        return true;
     }
 
     class ClientRequestResult {
