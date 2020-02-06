@@ -16,14 +16,15 @@ public class Client {
         BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
 
         try {
-            while(true) {
 
-                System.out.print("C> ");
+            boolean exit = false;
+
+            while (!exit) {
                 String request = inFromUser.readLine();
 
                 String response = client.makeRequest(request);
 
-                handleServerResponse(response);
+                exit = handleServerResponse(response);
             }
         }
         catch (IOException ioe) {}
@@ -32,9 +33,32 @@ public class Client {
     /* TODO - This method has no business being in the client code, will remove
      * in future projects when refactoring.
      */
-    public static void handleServerResponse(String serverResponse) {
-        // TODO - application specific code goes here
-        System.out.println(serverResponse);
+    public static boolean handleServerResponse(String serverResponse) {
+
+        String consoleStr = serverResponse;
+        boolean exit = false;
+
+        // map error codes to appropriate meanings
+        if ("-1".equals(consoleStr)) { // -1: incorrect operation command.
+            consoleStr = "incorrect operation command.";
+        }
+        else if ("-2".equals(consoleStr)) { // -2: number of inputs is less than two.
+            consoleStr = "number of inputs is less than two.";
+        }
+        else if ("-3".equals(consoleStr)) { // -3: number of inputs is more than four.
+            consoleStr = "number of inputs is more than four.";
+        }
+        else if ("-4".equals(consoleStr)) { // -4: one or more of the inputs contain(s) non-number(s).
+            consoleStr = "one or more of the inputs contain(s) non-number(s).";
+        }
+        else if ("-5".equals(consoleStr)) { // -5: exit.
+            consoleStr = "exit.";
+            exit = true;
+        }
+
+        System.out.println("receive: " + consoleStr);
+
+        return exit;
     }
 
     /* Instance Members */
