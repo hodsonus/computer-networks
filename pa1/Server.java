@@ -13,11 +13,15 @@ public class Server {
      * in future projects when refactoring.
      */
     public static void main(String[] args) {
-        int port = 415;
-        Server server = null;
+        if (args.length < 1) return;
+        int port;
+        try {
+            port = Integer.parseInt(args[0]);
+        }
+        catch (NumberFormatException nfe) { return; }
 
         try {
-            server = getServerInstance(port);
+            Server server = getServerInstance(port);
             server.listen();
             server.close();
         }
@@ -70,16 +74,16 @@ public class Server {
 
         boolean stillRunning = true;
 
-        System.out.println("Listening on port " + this.port + "...");
+        // throws IOException if server socket is closed or we are out of resources
+        Socket socket = serverSocket.accept();
+        System.out.println("get connection from " + socket.getInetAddress().toString());
+
+        BufferedReader inFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        DataOutputStream outToClient = new DataOutputStream(socket.getOutputStream());
+
+        outToClient.writeBytes("Hello!\n");
 
         while (stillRunning) {
-            // throws IOException if server socket is closed or we are out of resources
-            Socket socket = serverSocket.accept();
-            System.out.println("get connection from " + socket.getInetAddress().toString());
-
-            BufferedReader inFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            DataOutputStream outToClient = new DataOutputStream(socket.getOutputStream());
-
             // throws IOException if inFromClient is closed
             String clientInput = inFromClient.readLine();
 
@@ -92,6 +96,8 @@ public class Server {
 
             stillRunning = clientRequestResult.stillRunning;
         }
+
+        socket.close();
     }
 
     /**
