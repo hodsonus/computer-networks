@@ -72,32 +72,37 @@ public class Server {
      */
     public void listen() throws IOException {
 
-        boolean stillRunning = true;
+        boolean terminate = false;
 
-        // throws IOException if server socket is closed or we are out of resources
-        Socket socket = serverSocket.accept();
-        System.out.println("get connection from " + socket.getInetAddress().toString());
+        while (!terminate) {
 
-        BufferedReader inFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        DataOutputStream outToClient = new DataOutputStream(socket.getOutputStream());
+            // throws IOException if server socket is closed or we are out of resources
+            Socket socket = serverSocket.accept();
+            System.out.println("get connection from " + socket.getInetAddress().toString());
 
-        outToClient.writeBytes("Hello!\n");
+            BufferedReader inFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            DataOutputStream outToClient = new DataOutputStream(socket.getOutputStream());
 
-        while (stillRunning) {
-            // throws IOException if inFromClient is closed
-            String clientInput = inFromClient.readLine();
+            outToClient.writeBytes("Hello!\n");
 
-            // TODO - make this multithreaded
-            ClientRequestResult clientRequestResult = this.handleRequest(clientInput);
+            boolean maintainClientConn = true;
+            while (maintainClientConn) {
+                // throws IOException if inFromClient is closed
+                String clientInput = inFromClient.readLine();
 
-            String serverOutput = clientRequestResult.response;
-            // throws IOException if outToClient is closed
-            outToClient.writeBytes(serverOutput + "\n");
+                // TODO - make this multithreaded
+                ClientRequestResult clientRequestResult = this.handleRequest(clientInput);
 
-            stillRunning = clientRequestResult.stillRunning;
+                String serverOutput = clientRequestResult.response;
+                // throws IOException if outToClient is closed
+                outToClient.writeBytes(serverOutput + "\n");
+
+                maintainClientConn = clientRequestResult.maintainClientConn;
+                terminate = clientRequestResult.terminate;
+            }
+
+            socket.close();
         }
-
-        socket.close();
     }
 
     /**
@@ -111,7 +116,8 @@ public class Server {
      */
     public ClientRequestResult handleRequest(String clientRequest) {
         ClientRequestResult crr = new ClientRequestResult();
-        crr.stillRunning = true;
+        crr.maintainClientConn = true;
+        crr.terminate = false;
 
         if (clientRequest == null) { // incorrect operation command
             crr.response = "-1";
@@ -123,9 +129,14 @@ public class Server {
         if (op .equals("add") || op .equals("subtract") || op .equals("multiply")) {
             performArrayOperation(clientRequestArr, crr);
         }
-        else if (clientRequestArr[0].equals("bye")) { // exit
+        else if (op.equals("bye")) { // exit
             crr.response = "-5";
-            crr.stillRunning = false;
+            crr.maintainClientConn = false;
+        }
+        else if (op.equals("terminate")) {
+            crr.response = "-5";
+            crr.maintainClientConn = false;
+            crr.terminate = true;
         }
         else {  // incorrect operation command
             crr.response = "-1";
@@ -199,10 +210,12 @@ public class Server {
 
     class ClientRequestResult {
         public String response;
-        public boolean stillRunning;
-        public ClientRequestResult(String response, boolean stillRunning) {
+        public boolean terminate;
+        public boolean maintainClientConn;
+        public ClientRequestResult(String response, boolean stillRunning, boolean terminate) {
             this.response = response;
-            this.stillRunning = stillRunning;
+            this.maintainClientConn = stillRunning;
+            this.terminate = terminate;
         }
         public ClientRequestResult() {}
     }
