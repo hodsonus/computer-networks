@@ -13,19 +13,34 @@ public class Server {
      * in future projects when refactoring.
      */
     public static void main(String[] args) {
-        if (args.length < 1) return;
+        // validate the port provided via command line arguments
+        if (args.length < 1) {
+            System.out.println("Please provide a port via the first command line argument.");
+            return;
+        }
         int port;
         try {
             port = Integer.parseInt(args[0]);
         }
-        catch (NumberFormatException nfe) { return; }
+        catch (NumberFormatException nfe) {
+            System.out.println("Please provide a valid integer number for the port.");
+            return;
+        }
+
+        if (port < 0 || port > 65535) {
+            System.out.println("Please provide a valid port number (between 0 and 65535, inclusive).");
+            return;
+        }
 
         try {
             Server server = getServerInstance(port);
             server.listen();
             server.close();
         }
-        catch (IOException ioe) {}
+        catch (IOException ioe) {
+            System.out.println("Internal error, terminating.");
+            ioe.printStackTrace();
+        }
     }
 
     /* Static Members */
@@ -71,15 +86,17 @@ public class Server {
      * requests.
      */
     public void listen() throws IOException {
-
         boolean terminate = false;
 
         while (!terminate) {
 
             // throws IOException if server socket is closed or we are out of resources
+            // TODO - make this multithreaded
             Socket socket = serverSocket.accept();
+
             System.out.println("get connection from " + socket.getInetAddress().toString());
 
+            // instantiate input and output streams
             BufferedReader inFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             DataOutputStream outToClient = new DataOutputStream(socket.getOutputStream());
 
@@ -90,17 +107,18 @@ public class Server {
                 // throws IOException if inFromClient is closed
                 String clientInput = inFromClient.readLine();
 
-                // TODO - make this multithreaded
                 ClientRequestResult clientRequestResult = this.handleRequest(clientInput);
 
+                // unpack request result
                 String serverOutput = clientRequestResult.response;
-                // throws IOException if outToClient is closed
-                outToClient.writeBytes(serverOutput + "\n");
-
                 maintainClientConn = clientRequestResult.maintainClientConn;
                 terminate = clientRequestResult.terminate;
+                
+                // throws IOException if outToClient is closed
+                outToClient.writeBytes(serverOutput + "\n");
             }
 
+            // close the client socket
             socket.close();
         }
     }
@@ -115,25 +133,28 @@ public class Server {
      * out into an abstract class. Subclasses should override this method.
      */
     public ClientRequestResult handleRequest(String clientRequest) {
+        // instantiate the request result
         ClientRequestResult crr = new ClientRequestResult();
         crr.maintainClientConn = true;
         crr.terminate = false;
 
         if (clientRequest == null) { // incorrect operation command
             crr.response = "-1";
+            crr.maintainClientConn = false;
             return crr;
         }
-        
+
         String[] clientRequestArr = clientRequest.split(" ");
         String op = clientRequestArr[0];
-        if (op .equals("add") || op .equals("subtract") || op .equals("multiply")) {
+
+        if (op .equals("add") || op .equals("subtract") || op .equals("multiply")) { // if its a valid operastion
             performArrayOperation(clientRequestArr, crr);
         }
         else if (op.equals("bye")) { // exit
             crr.response = "-5";
             crr.maintainClientConn = false;
         }
-        else if (op.equals("terminate")) {
+        else if (op.equals("terminate")) { // exit
             crr.response = "-5";
             crr.maintainClientConn = false;
             crr.terminate = true;
@@ -169,6 +190,8 @@ public class Server {
 
             // Operator is the first element in the array
             String op = arr[0];
+
+            // loop over the arguments, casting them to an integer and combine with the accumulator
             for (int i = 2; i < arr.length; ++i) {
                 try {
                     if (op.equals("add")) {
@@ -188,6 +211,7 @@ public class Server {
                 }
             }
 
+            // cast our accumulator back to a string and return
             crr.response = Integer.toString(accum);
         }
     }
@@ -208,6 +232,7 @@ public class Server {
         return true;
     }
 
+    // class used to bundle the state of the program after handling the request
     class ClientRequestResult {
         public String response;
         public boolean terminate;
