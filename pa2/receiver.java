@@ -49,8 +49,8 @@ public class receiver {
         DataOutputStream toNetwork = new DataOutputStream(networkSocket.getOutputStream());
 
         int expectedSequenceNo = 0;
-
         List<String> reconstructedMessage = new ArrayList<String>();
+        int packetsReceived = 0;
 
         while (true) {
             String packet = fromNetwork.readLine();
@@ -61,7 +61,6 @@ public class receiver {
             }
 
             int packetSequenceNo = Integer.parseInt(decomposedPacket.get(0));
-            int packetID = Integer.parseInt(decomposedPacket.get(1));
             int packetChecksum = Integer.parseInt(decomposedPacket.get(2));
             String packetMessage = decomposedPacket.get(3);
 
@@ -70,6 +69,9 @@ public class receiver {
             for (char c : packetMessage.toCharArray()) actualChecksum += c;
 
             int newPacketSequenceNo;
+            boolean updateExpectedSequenceNo = false;
+            boolean resetReconstructedMessage = false;
+
             if (actualChecksum == packetChecksum) {
                 // If the packet was not corrupt
 
@@ -79,20 +81,12 @@ public class receiver {
                     // Deliver data
                     reconstructedMessage.add(packetMessage);
 
-                    if (packetMessage.endsWith(".")) {
-                        /* If it was the last message in this sequence, then
-                         * print to the console and reset the
-                         * reconstructedMessage list. */
-                        System.out.println(String.join(" ", reconstructedMessage));
-                        reconstructedMessage = new ArrayList<String>();
-                    }
+                    // Update flags for updates after status print
+                    resetReconstructedMessage = packetMessage.endsWith(".");
+                    updateExpectedSequenceNo = true;
 
                     // Send back the expected sequence number
                     newPacketSequenceNo = expectedSequenceNo;
-
-                    // And flip the expectedSequenceNo
-                    if (expectedSequenceNo == 0) expectedSequenceNo = 1;
-                    else expectedSequenceNo = 0;
                 }
                 else {
                     // If it was not the expected sequenceNo, then send back the packet's sequence number.
@@ -106,6 +100,22 @@ public class receiver {
                 // Else the packet was corrupt and the newMessage should be an ACK with the unexpected sequence number
                 if (packetSequenceNo == 0) newPacketSequenceNo = 1;
                 else newPacketSequenceNo = 0;
+            }
+
+            System.out.println(String.format("Waiting %d, %d, %s, ACK%d", expectedSequenceNo, ++packetsReceived, packet, newPacketSequenceNo));
+
+            if (updateExpectedSequenceNo) {
+                // Flip the expectedSequenceNo
+                if (expectedSequenceNo == 0) expectedSequenceNo = 1;
+                else expectedSequenceNo = 0;
+            }
+
+            if (resetReconstructedMessage) {
+                /* If it was the last message in this sequence, then
+                * print to the console and reset the
+                * reconstructedMessage list. */
+                System.out.println(String.join(" ", reconstructedMessage));
+                reconstructedMessage = new ArrayList<String>();
             }
 
             // The same packetSequenceNo will be echoed, the checksum for an ACK should be 0, along with the newMessage (either ACK or NAK)

@@ -73,8 +73,8 @@ public class network {
                 break;
             }
 
-            String originalMessage = deconstructedSenderPacket.get(3);
-            String ID = deconstructedSenderPacket.get(1);
+            String packetSequenceNo = deconstructedSenderPacket.get(0);
+            String packetID = deconstructedSenderPacket.get(1);
 
             // Choose pass/drop/corrupt
             prob = generator.nextDouble();
@@ -83,7 +83,7 @@ public class network {
                 packetForSender = "2 0 ACK";
                 toSender.writeBytes(packetForSender + "\n");
 
-                System.out.println(String.format("Received: %s, %s, %s", originalMessage, ID, "DROP"));
+                System.out.println(String.format("Received: Packet%s, %s, DROP", packetSequenceNo, packetID));
                 continue;
             }
             else if (prob <= 0.5) {
@@ -92,11 +92,11 @@ public class network {
                 ++checksum;
                 deconstructedSenderPacket.set(2, Integer.toString(checksum));
 
-                System.out.println(String.format("Received: %s, %s, %s", originalMessage, ID, "CORRUPT"));
+                System.out.println(String.format("Received: Packet%s, %s, CORRUPT", packetSequenceNo, packetID));
             }
             else {
                 // The pass case is for prob > 0.5, where we do nothing
-                System.out.println(String.format("Received: %s, %s, %s", originalMessage, ID, "PASS"));
+                System.out.println(String.format("Received: Packet%s, %s, PASS", packetSequenceNo, packetID));
             }
 
             // Generate the packetForReceiver from the senderPacket (potentially modified in the above statement).
@@ -110,8 +110,8 @@ public class network {
             // get message from the fromReceiver buffer
             deconstructedReceiverPacket = new ArrayList<String>(Arrays.asList(fromReceiver.readLine().split(" ")));
 
-            originalMessage = deconstructedReceiverPacket.get(2);
-            String sequenceNumber = deconstructedReceiverPacket.get(0);
+            packetSequenceNo = deconstructedReceiverPacket.get(0);
+            String packetMessage = deconstructedReceiverPacket.get(2);
 
             // choose pass/drop/corrupt
             prob = generator.nextDouble();
@@ -121,7 +121,7 @@ public class network {
                 deconstructedReceiverPacket.set(1, "0"); //  ACK has checksum 0
                 deconstructedReceiverPacket.set(2, "ACK"); //  Drop uses ACK2 as a message
 
-                System.out.println(String.format("Received: %s%s, %s", originalMessage, sequenceNumber, "DROP"));
+                System.out.println(String.format("Received: %s%s, %s", packetMessage, packetSequenceNo, "DROP"));
             }
             else if (prob <= 0.5) {
                 // Corrupt case - we increment the checksum instead of flipping bits here
@@ -129,11 +129,11 @@ public class network {
                 ++checksum;
                 deconstructedReceiverPacket.set(1, Integer.toString(checksum));
 
-                System.out.println(String.format("Received: %s%s, %s", originalMessage, sequenceNumber, "CORRUPT"));
+                System.out.println(String.format("Received: %s%s, %s", packetMessage, packetSequenceNo, "CORRUPT"));
             }
             else {
                 // The pass case is for prob > 0.5, where we do nothing
-                System.out.println(String.format("Received: %s%s, %s", originalMessage, sequenceNumber, "PASS"));
+                System.out.println(String.format("Received: %s%s, %s", packetMessage, packetSequenceNo, "PASS"));
             }
 
             packetForSender = String.join(" ", deconstructedReceiverPacket);

@@ -97,12 +97,15 @@ public class sender {
             packets.add(packet);
         }
 
+        int packetsSent = 0;
+
         // Iterate over the list of packets, sending them one-by-one
         for (int id = 0; id < packets.size(); ++id) {
             
             String packet = packets.get(id);
             List<String> deconstructedPacket = Arrays.asList(packet.split(" "));
             int expectedSequenceNo = Integer.parseInt(deconstructedPacket.get(0));
+            String actionTaken = String.format("send Packet%d", expectedSequenceNo);
 
             boolean isDrop, isCorrupt, isUnexpectedSequenceNo;
             do {
@@ -130,6 +133,26 @@ public class sender {
                 isDrop = packetSequenceNo == 2 && packetMessage.equals("ACK");
                 isCorrupt = packetChecksum != 0;
                 isUnexpectedSequenceNo = packetSequenceNo != expectedSequenceNo;
+
+                String receiverResponse;
+                if (isDrop) {
+                    receiverResponse = "DROP";
+                }
+                else {
+                    receiverResponse = String.format("ACK%d", packetSequenceNo);
+                }
+
+                System.out.println(String.format("Waiting ACK%d, %d, %s, %s", expectedSequenceNo, ++packetsSent, receiverResponse, actionTaken));
+
+                if (isDrop || isCorrupt || isUnexpectedSequenceNo) {
+
+                    if (id == packets.size()-2) {
+                        actionTaken = "no more packets to send";
+                    }
+                    else {
+                        actionTaken = String.format("resend Packet%d", expectedSequenceNo);
+                    }
+                }
 
                 // Repeat as long as we had a dropped, corrupt, or unexpected sequence number.
             } while(isDrop || isCorrupt || isUnexpectedSequenceNo);
