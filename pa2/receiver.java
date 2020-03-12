@@ -69,12 +69,9 @@ public class receiver {
             int actualChecksum = 0;
             for (char c : packetMessage.toCharArray()) actualChecksum += c;
 
-            String newMessage;
+            int newPacketSequenceNo;
             if (actualChecksum == packetChecksum) {
                 // If the packet was not corrupt
-                
-                // ACK will be the response
-                newMessage = "ACK";
 
                 if (expectedSequenceNo == packetSequenceNo) {
                     // If it was the expected sequence number
@@ -90,25 +87,30 @@ public class receiver {
                         reconstructedMessage = new ArrayList<String>();
                     }
 
+                    // Send back the expected sequence number
+                    newPacketSequenceNo = expectedSequenceNo;
+
                     // And flip the expectedSequenceNo
                     if (expectedSequenceNo == 0) expectedSequenceNo = 1;
                     else expectedSequenceNo = 0;
+                }
+                else {
+                    // If it was not the expected sequenceNo, then send back the packet's sequence number.
+                    newPacketSequenceNo = packetSequenceNo;
                 }
                 
                 // If it was an unexpected sequence number then we will still send
                 // an ACK but not update the expectedSequenceNo or deliver the data.
             }
             else {
-                // Else the packet was corrupt and the newMessage should be an ACK
-                newMessage = "NAK";
+                // Else the packet was corrupt and the newMessage should be an ACK with the unexpected sequence number
+                if (packetSequenceNo == 0) newPacketSequenceNo = 1;
+                else newPacketSequenceNo = 0;
             }
 
-            int newChecksum = 0;
-            for (char c : newMessage.toCharArray()) newChecksum += c;
-            decomposedPacket.set(2, Integer.toString(newChecksum));
-            decomposedPacket.set(3, newMessage);
-            
-            toNetwork.writeBytes(String.join(" ", decomposedPacket) + "\n");
+            // The same packetSequenceNo will be echoed, the checksum for an ACK should be 0, along with the newMessage (either ACK or NAK)
+            String ackPacket = String.format("%d 0 ACK", newPacketSequenceNo);
+            toNetwork.writeBytes(ackPacket + "\n");
         }
 
         networkSocket.close();

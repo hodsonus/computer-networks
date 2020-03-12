@@ -55,51 +55,42 @@ public class network {
         BufferedReader fromSender = new BufferedReader(new InputStreamReader(senderSocket.getInputStream()));
         DataOutputStream toSender = new DataOutputStream(senderSocket.getOutputStream());
 
-        List<String> receiverPacket, senderPacket;
+        List<String> deconstructedReceiverPacket, deconstructedSenderPacket;
         String packetForReceiver, packetForSender;
         Random generator = new Random();
         double prob;
 
         while (true) {
             // get message from the fromSender buffer
-            senderPacket = new ArrayList<String>(Arrays.asList(fromSender.readLine().split(" ")));
+            deconstructedSenderPacket = new ArrayList<String>(Arrays.asList(fromSender.readLine().split(" ")));
 
-            // If the message is -1, put it in the toReceiver buffer and terminate
-            if (senderPacket.get( senderPacket.size()-1 ).equals("-1")) {
-                packetForReceiver = String.join(" ", senderPacket);
-
-                System.out.println(String.format("Received: %s, %s", packetForReceiver, "TERMINATE"));
-
+            if (deconstructedSenderPacket.get( deconstructedSenderPacket.size()-1 ).equals("-1")) {
+                // If the message is -1, put it in the toReceiver buffer and terminate
+                packetForReceiver = String.join(" ", deconstructedSenderPacket);
                 toReceiver.writeBytes(packetForReceiver + "\n");
 
+                System.out.println("Received: TERMINATE");
                 break;
             }
 
-            String originalMessage = senderPacket.get(3);
-            String ID = senderPacket.get(1);
+            String originalMessage = deconstructedSenderPacket.get(3);
+            String ID = deconstructedSenderPacket.get(1);
 
             // Choose pass/drop/corrupt
             prob = generator.nextDouble();
             if (prob <= 0.25) {
-                // Drop case
-                senderPacket.set(0, "2"); //  Drop has sequence number 2
-                // Leave the ID at position 1 unchanged
-                senderPacket.set(2, "0"); //  ACK has checksum 0
-                senderPacket.set(3, "ACK"); //  Drop has sequence number 2
-
-                // DROP packets go to the sender
-                packetForSender = String.join(" ", senderPacket);
+                // Drop case, DROP packets go to the sender
+                packetForSender = "2 0 ACK";
                 toSender.writeBytes(packetForSender + "\n");
 
                 System.out.println(String.format("Received: %s, %s, %s", originalMessage, ID, "DROP"));
-
                 continue;
             }
             else if (prob <= 0.5) {
                 // Corrupt case
-                int checksum = Integer.parseInt(senderPacket.get(2));
+                int checksum = Integer.parseInt(deconstructedSenderPacket.get(2));
                 ++checksum;
-                senderPacket.set(2, Integer.toString(checksum));
+                deconstructedSenderPacket.set(2, Integer.toString(checksum));
 
                 System.out.println(String.format("Received: %s, %s, %s", originalMessage, ID, "CORRUPT"));
             }
@@ -109,7 +100,7 @@ public class network {
             }
 
             // Generate the packetForReceiver from the senderPacket (potentially modified in the above statement).
-            packetForReceiver = String.join(" ", senderPacket);
+            packetForReceiver = String.join(" ", deconstructedSenderPacket);
 
             // put it in the toReceiver buffer
             toReceiver.writeBytes(packetForReceiver + "\n");
@@ -117,27 +108,26 @@ public class network {
 
 
             // get message from the fromReceiver buffer
-            receiverPacket = new ArrayList<String>(Arrays.asList(fromReceiver.readLine().split(" ")));
+            deconstructedReceiverPacket = new ArrayList<String>(Arrays.asList(fromReceiver.readLine().split(" ")));
 
-            originalMessage = receiverPacket.get(3);
-            String sequenceNumber = receiverPacket.get(0);
+            originalMessage = deconstructedReceiverPacket.get(2);
+            String sequenceNumber = deconstructedReceiverPacket.get(0);
 
             // choose pass/drop/corrupt
             prob = generator.nextDouble();
             if (prob <= 0.25) {
                 // Drop case
-                receiverPacket.set(0, "2"); //  Drop has sequence number 2
-                // Leave the ID at position 1 unchanged
-                receiverPacket.set(2, "0"); //  ACK has checksum 0
-                receiverPacket.set(3, "ACK"); //  Drop has sequence number 2
+                deconstructedReceiverPacket.set(0, "2"); //  Drop has sequence number 2
+                deconstructedReceiverPacket.set(1, "0"); //  ACK has checksum 0
+                deconstructedReceiverPacket.set(2, "ACK"); //  Drop uses ACK2 as a message
 
                 System.out.println(String.format("Received: %s%s, %s", originalMessage, sequenceNumber, "DROP"));
             }
             else if (prob <= 0.5) {
                 // Corrupt case - we increment the checksum instead of flipping bits here
-                int checksum = Integer.parseInt(receiverPacket.get(2));
+                int checksum = Integer.parseInt(deconstructedReceiverPacket.get(1));
                 ++checksum;
-                receiverPacket.set(2, Integer.toString(checksum));
+                deconstructedReceiverPacket.set(1, Integer.toString(checksum));
 
                 System.out.println(String.format("Received: %s%s, %s", originalMessage, sequenceNumber, "CORRUPT"));
             }
@@ -146,7 +136,7 @@ public class network {
                 System.out.println(String.format("Received: %s%s, %s", originalMessage, sequenceNumber, "PASS"));
             }
 
-            packetForSender = String.join(" ", receiverPacket);
+            packetForSender = String.join(" ", deconstructedReceiverPacket);
             // put it in the toSender buffer
             toSender.writeBytes(packetForSender + "\n");
         }
