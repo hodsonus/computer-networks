@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -61,14 +62,15 @@ public class network {
 
         while (true) {
             // get message from the fromSender buffer
-            senderPacket = Arrays.asList(fromSender.readLine().split(" "));
+            senderPacket = new ArrayList<String>(Arrays.asList(fromSender.readLine().split(" ")));
 
             // If the message is -1, put it in the toReceiver buffer and terminate
             if (senderPacket.get( senderPacket.size()-1 ).equals("-1")) {
                 packetForReceiver = String.join(" ", senderPacket);
-                toReceiver.writeBytes(packetForReceiver + "\n");
 
                 System.out.println(String.format("Received: %s, %s", packetForReceiver, "TERMINATE"));
+
+                toReceiver.writeBytes(packetForReceiver + "\n");
 
                 break;
             }
@@ -115,7 +117,7 @@ public class network {
 
 
             // get message from the fromReceiver buffer
-            receiverPacket = Arrays.asList(fromReceiver.readLine().split(" "));
+            receiverPacket = new ArrayList<String>(Arrays.asList(fromReceiver.readLine().split(" ")));
 
             originalMessage = receiverPacket.get(3);
             String sequenceNumber = receiverPacket.get(0);
