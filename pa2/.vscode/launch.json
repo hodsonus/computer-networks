@@ -1,0 +1,38 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Debug (Launch) - Current File",
+            "request": "launch",
+            "mainClass": "${file}",
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-network<pa2_48210556>",
+            "request": "launch",
+            "mainClass": "network",
+            "projectName": "pa2_48210556",
+            "args": ["500"]
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-receiver<pa2_48210556>",
+            "request": "launch",
+            "mainClass": "receiver",
+            "projectName": "pa2_48210556",
+            "args": ["localhost", "500"]
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-sender<pa2_48210556>",
+            "request": "launch",
+            "mainClass": "sender",
+            "projectName": "pa2_48210556",
+            "args": ["localhost", "500", "message.txt"]
+        }
+    ]
+}
